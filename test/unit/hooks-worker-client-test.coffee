@@ -32,8 +32,8 @@ loadWorkerClient = (callback) ->
   hooksWorkerClient.start (error) ->
     callback(error)
 
-describe 'Hooks worker client', () ->
-  beforeEach () ->
+describe 'Hooks worker client', ->
+  beforeEach ->
     logs = []
 
     runner = new TransactionRunner {}
@@ -51,28 +51,28 @@ describe 'Hooks worker client', () ->
         # console.log text
         logs.push text
 
-  afterEach () ->
+  afterEach ->
     for level in logLevels
       loggerStub[level].restore()
 
-  describe "when connecting to the handler is stubed", () ->
-    beforeEach () ->
+  describe "when methods dealing with connection to the handler are stubbed", ->
+    beforeEach ->
       sinon.stub HooksWorkerClient.prototype, 'disconnectFromHandler'
       sinon.stub HooksWorkerClient.prototype, 'connectToHandler', (cb) ->
         cb()
 
-    afterEach () ->
+    afterEach ->
       HooksWorkerClient.prototype.disconnectFromHandler.restore()
       HooksWorkerClient.prototype.connectToHandler.restore()
 
     it 'should pipe spawned process stdout to the Dredd process stdout', (done) ->
       runner.hooks.configuration.options.language = './test/fixtures/scripts/stdout.sh'
-      loadWorkerClient (err)->
+      loadWorkerClient (err) ->
         assert.isUndefined err
 
         # Race condition workaround
         # Spawned process doesn't write to stdout before is terminated
-        hooksWorkerClient.stop () ->
+        hooksWorkerClient.stop ->
           assert.include logs, "Hook handler stdout: standard output text\n"
           done()
 
@@ -84,11 +84,11 @@ describe 'Hooks worker client', () ->
 
         # Race condition workaround
         # Spawned process doesn't write to stderr before is terminated
-        hooksWorkerClient.stop () ->
+        hooksWorkerClient.stop ->
           assert.include logs, "Hook handler stderr: error output text\n"
           done()
 
-    it 'should not set the error on worker if process is killed intentionally ' +
+    it 'should not set the error on worker if process gets intentionally killed by Dredd ' +
     'because it can be killed after all hooks execution if SIGTERM isn\'t handled', (done) ->
       runner.hooks.configuration.options.language = './test/fixtures/scripts/endless-nosigterm.sh'
       loadWorkerClient (workerError) ->
@@ -99,7 +99,7 @@ describe 'Hooks worker client', () ->
           assert.isNull runner.hookHandlerError
           done()
 
-    it 'should include the status in the error if spawned process ends with exit status 2', (done) ->
+    it 'should include the status in the error if spawned process ends with non-zero exit status', (done) ->
       runner.hooks.configuration.options.language = './test/fixtures/scripts/exit_3.sh'
       loadWorkerClient (workerError) ->
         done workerError if workerError
@@ -110,7 +110,7 @@ describe 'Hooks worker client', () ->
           assert.include runner.hookHandlerError.message, '3'
           done()
 
-    describe 'when --language ruby option is given and the worker is installed', () ->
+    describe 'when --language ruby option is given and the worker is installed', ->
       beforeEach ->
         sinon.stub childProcessStub, 'spawn', ->
           emitter = new EventEmitter
@@ -148,7 +148,7 @@ describe 'Hooks worker client', () ->
             assert.equal childProcessStub.spawn.getCall(0).args[0], 'dredd-hooks-ruby'
             done()
 
-      it 'should pass --hookfiles option as a array of arguments', (done) ->
+      it 'should pass --hookfiles option as an array of arguments', (done) ->
         loadWorkerClient (err) ->
           assert.isUndefined err
 
@@ -157,8 +157,8 @@ describe 'Hooks worker client', () ->
             assert.equal childProcessStub.spawn.getCall(0).args[1][0], 'somefile.rb'
             done()
 
-    describe 'when --language ruby option is given and the worker is not installed', () ->
-      beforeEach () ->
+    describe 'when --language ruby option is given and the worker is not installed', ->
+      beforeEach ->
         sinon.stub whichStub, 'which', (command) -> false
 
         runner.hooks['configuration'] =
@@ -166,7 +166,7 @@ describe 'Hooks worker client', () ->
             language: 'ruby'
             hookfiles: "somefile.rb"
 
-      afterEach () ->
+      afterEach ->
         whichStub.which.restore()
 
 
@@ -176,7 +176,7 @@ describe 'Hooks worker client', () ->
           assert.include err.message, "gem install dredd_hooks"
           done()
 
-    describe 'when --language python option is given and the worker is installed', () ->
+    describe 'when --language python option is given and the worker is installed', ->
       beforeEach ->
         sinon.stub childProcessStub, 'spawn', ->
           emitter = new EventEmitter
@@ -214,7 +214,7 @@ describe 'Hooks worker client', () ->
             assert.equal childProcessStub.spawn.getCall(0).args[0], 'dredd-hooks-python'
             done()
 
-      it 'should pass --hookfiles option as a array of arguments', (done) ->
+      it 'should pass --hookfiles option as an array of arguments', (done) ->
         loadWorkerClient (err) ->
           assert.isUndefined err
 
@@ -223,8 +223,8 @@ describe 'Hooks worker client', () ->
             assert.equal childProcessStub.spawn.getCall(0).args[1][0], 'somefile.py'
             done()
 
-    describe 'when --language python option is given and the worker is not installed', () ->
-      beforeEach () ->
+    describe 'when --language python option is given and the worker is not installed', ->
+      beforeEach ->
         sinon.stub whichStub, 'which', (command) -> false
 
         runner.hooks['configuration'] =
@@ -232,7 +232,7 @@ describe 'Hooks worker client', () ->
             language: 'python'
             hookfiles: "somefile.py"
 
-      afterEach () ->
+      afterEach ->
         whichStub.which.restore()
 
       it 'should write a hint how to install', (done) ->
@@ -242,7 +242,7 @@ describe 'Hooks worker client', () ->
           done()
 
 
-    describe 'when --language ./any/other-command is given', () ->
+    describe 'when --language ./any/other-command is given', ->
       beforeEach ->
         sinon.stub childProcessStub, 'spawn', ->
           emitter = new EventEmitter
@@ -252,13 +252,13 @@ describe 'Hooks worker client', () ->
 
         runner.hooks['configuration'] =
           options:
-            language: './my-fency-command'
+            language: './my-fancy-command'
             hookfiles: "someotherfile"
 
         sinon.stub HooksWorkerClient.prototype, 'terminateHandler', (callback) ->
           callback()
 
-        sinon.stub whichStub, 'which', () -> true
+        sinon.stub whichStub, 'which', -> true
 
       afterEach ->
         childProcessStub.spawn.restore()
@@ -268,17 +268,17 @@ describe 'Hooks worker client', () ->
         HooksWorkerClient.prototype.terminateHandler.restore()
         whichStub.which.restore()
 
-      it 'should spawn the server process with command "./my-fency-command"', (done) ->
+      it 'should spawn the server process with command "./my-fancy-command"', (done) ->
         loadWorkerClient (err) ->
           assert.isUndefined err
 
           hooksWorkerClient.stop (err) ->
             assert.isUndefined err
             assert.isTrue childProcessStub.spawn.called
-            assert.equal childProcessStub.spawn.getCall(0).args[0], './my-fency-command'
+            assert.equal childProcessStub.spawn.getCall(0).args[0], './my-fancy-command'
             done()
 
-      it 'should pass --hookfiles option as a array of arguments', (done) ->
+      it 'should pass --hookfiles option as an array of arguments', (done) ->
         loadWorkerClient (err) ->
           assert.isUndefined err
 
@@ -287,7 +287,7 @@ describe 'Hooks worker client', () ->
             assert.equal childProcessStub.spawn.getCall(0).args[1][0], 'someotherfile'
             done()
 
-    describe "after loading", () ->
+    describe "after loading", ->
       beforeEach (done) ->
 
         runner.hooks['configuration'] =
@@ -330,11 +330,11 @@ describe 'Hooks worker client', () ->
       ]
 
       for eventType in eventTypes then do (eventType) ->
-        it "should register hook function for hook type #{eventType}", () ->
+        it "should register hook function for hook type #{eventType}", ->
           hookFuncs = runner.hooks["#{eventType}Hooks"]
           assert.isAbove hookFuncs.length, 0
 
-  describe 'when hook handler server is running and not modifying transactions', () ->
+  describe 'when hook handler server is running and not modifying transactions', ->
     server = null
     receivedData = ""
     transaction = null
@@ -342,7 +342,7 @@ describe 'Hooks worker client', () ->
     currentSocket = null
     sentData = ""
 
-    beforeEach () ->
+    beforeEach ->
       receivedData = ""
 
       transaction =
@@ -355,7 +355,7 @@ describe 'Hooks worker client', () ->
         socket.on 'data', (data) ->
           receivedData += data.toString()
 
-          receivedObject = JSON.parse receivedData.replace("\n","")
+          receivedObject = JSON.parse receivedData.replace("\n", "")
           objectToSend = clone receivedObject
           message = JSON.stringify(objectToSend) + "\n"
 
@@ -387,7 +387,7 @@ describe 'Hooks worker client', () ->
     ]
 
     for eventType in eventTypes then do (eventType) ->
-      describe "when '#{eventType}' hook function is triggered", () ->
+      describe "when '#{eventType}' hook function is triggered", ->
         if eventType.indexOf("All") > -1
           beforeEach (done) ->
             receivedData = ""
@@ -395,7 +395,7 @@ describe 'Hooks worker client', () ->
             sentData = clone [transaction]
             loadWorkerClient (err) ->
               assert.isUndefined err
-              runner.hooks["#{eventType}Hooks"][0] sentData, () ->
+              runner.hooks["#{eventType}Hooks"][0] sentData, ->
                 done()
 
         else
@@ -405,25 +405,23 @@ describe 'Hooks worker client', () ->
             sentData = clone transaction
             loadWorkerClient (err) ->
               assert.isUndefined err
-              runner.hooks["#{eventType}Hooks"][0] sentData, () ->
+              runner.hooks["#{eventType}Hooks"][0] sentData, ->
                 done()
 
         afterEach (done) ->
-          hooksWorkerClient.stop (err) ->
-            done err if err
-            done()
+          hooksWorkerClient.stop done
 
-        it 'should send a json to the socket ending with delimiter character', (done) ->
+        it 'should send JSON to the socket ending with delimiter character', (done) ->
           assert.include receivedData, "\n"
           assert.include receivedData, "{"
           done()
 
 
-        describe 'sent object', () ->
+        describe 'sent object', ->
           receivedObject = null
 
-          beforeEach () ->
-            receivedObject = JSON.parse receivedData.replace("\n","")
+          beforeEach ->
+            receivedObject = JSON.parse receivedData.replace("\n", "")
 
           keys = [
             'data'
@@ -432,22 +430,22 @@ describe 'Hooks worker client', () ->
           ]
 
           for key in keys then do (key) ->
-            it "should contain key #{key}", () ->
+            it "should contain key #{key}", ->
               assert.property receivedObject, key
 
-          it "key event should have value #{eventType}", () ->
+          it "key event should have value #{eventType}", ->
             assert.equal receivedObject['event'], eventType
 
           if eventType.indexOf("All") > -1
-            it "key data should contain array of transaction objects", () ->
+            it "key data should contain array of transaction objects", ->
               assert.isArray receivedObject['data']
               assert.propertyVal receivedObject['data'][0], 'key', 'value'
           else
-            it "key data should contain the transaction object", () ->
+            it "key data should contain the transaction object", ->
               assert.isObject receivedObject['data']
               assert.propertyVal receivedObject['data'], 'key', 'value'
 
-  describe 'when hook handler server is running and modifying transactions', () ->
+  describe 'when hook handler server is running and modifying transactions', ->
     server = null
     receivedData = ""
     transaction = null
@@ -455,7 +453,7 @@ describe 'Hooks worker client', () ->
     currentSocket = null
     sentData = ""
 
-    beforeEach () ->
+    beforeEach ->
       receivedData = ""
 
       transaction =
@@ -482,7 +480,7 @@ describe 'Hooks worker client', () ->
     ]
 
     for eventType in eventTypes then do (eventType) ->
-      describe "when '#{eventType}' hook function is triggered", () ->
+      describe "when '#{eventType}' hook function is triggered", ->
         if eventType.indexOf("All") > -1
           beforeEach (done) ->
             receivedData = ""
@@ -490,7 +488,7 @@ describe 'Hooks worker client', () ->
             sentData = clone [transaction]
             loadWorkerClient (err) ->
               assert.isUndefined err
-              runner.hooks["#{eventType}Hooks"][0] sentData, () ->
+              runner.hooks["#{eventType}Hooks"][0] sentData, ->
               done()
 
         else
@@ -500,19 +498,17 @@ describe 'Hooks worker client', () ->
             sentData = clone transaction
             loadWorkerClient (err) ->
               assert.isUndefined err
-              runner.hooks["#{eventType}Hooks"][0] sentData, () ->
+              runner.hooks["#{eventType}Hooks"][0] sentData, ->
               done()
 
         afterEach (done) ->
-          hooksWorkerClient.stop (err) ->
-            done err if err
-            done()
+          hooksWorkerClient.stop done
 
         if eventType.indexOf("All") > -1
-          describe 'when server sends a response with matching uuid', () ->
-            beforeEach () ->
+          describe 'when server sends a response with matching uuid', ->
+            beforeEach ->
               receivedObject = null
-              receivedObject = JSON.parse clone(receivedData).replace("\n","")
+              receivedObject = JSON.parse clone(receivedData).replace("\n", "")
 
               objectToSend = clone receivedObject
               # *all events are handling array of transactions
@@ -521,15 +517,15 @@ describe 'Hooks worker client', () ->
               currentSocket.write message
 
             it 'should add data from the response to the transaction', (done) ->
-              setTimeout () ->
+              setTimeout ->
                 assert.equal sentData[0]['key'], 'newValue'
                 done()
               , 200
         else
-          describe 'when server sends a response with matching uuid', () ->
-            beforeEach () ->
+          describe 'when server sends a response with matching uuid', ->
+            beforeEach ->
               receivedObject = null
-              receivedObject = JSON.parse clone(receivedData).replace("\n","")
+              receivedObject = JSON.parse clone(receivedData).replace("\n", "")
 
               objectToSend = clone receivedObject
               objectToSend['data']['key'] = "newValue"
@@ -538,7 +534,7 @@ describe 'Hooks worker client', () ->
               currentSocket.write message
 
             it 'should add data from the response to the transaction', (done) ->
-              setTimeout () ->
+              setTimeout ->
                 assert.equal sentData['key'], 'newValue'
                 done()
               , 200
